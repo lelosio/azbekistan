@@ -6,7 +6,7 @@ public class GunSystem : MonoBehaviour
 {
     // Gun stats
     public int damage;
-    public float timeBetweenShooting, spread, range, reloadTime;
+    public float timeBetweenShooting, spread, range;
     private float timeBetweenShots;
     public int magazineSize, bulletsPerTap;
     public bool allowButtonHold;
@@ -32,7 +32,7 @@ public class GunSystem : MonoBehaviour
 
     public void Update()
     {
-        text.SetText(bulletsLeft + "/" + magazineSize);
+        text.SetText(bulletsLeft + "/" + 0);
         MyInput();
     }
 
@@ -44,34 +44,36 @@ public class GunSystem : MonoBehaviour
         else
             shooting = Input.GetMouseButtonDown(0); // Changed GetMouseButton to GetMouseButtonDown
 
-        if (Input.GetKeyDown(KeyCode.R) && bulletsLeft < magazineSize && !reloading)
-            Reload();
-
+            
         //Shoot
-        if (readyToShoot && shooting && !reloading && bulletsLeft > 0)
+        if (readyToShoot && shooting && bulletsLeft > 0)
         {
             bulletsShot = bulletsPerTap;
             Shoot();
         }
     }
 
-     private void Shoot()
+    private void Shoot()
     {
         readyToShoot = false;
 
         //Spread
         float x = Random.Range(-spread, spread);
         float y = Random.Range(-spread, spread);
+        Vector3 direction = fpsCam.transform.forward;
 
-        //Calculate Direction with Spread
-        Vector3 direction = fpsCam.transform.forward + new Vector3(x, y, 0);
+        //rotacja rozrzutu
+        direction += fpsCam.transform.right * x;
+        direction += fpsCam.transform.up * y;
 
+        muzzleFlash.Play();
 
-       muzzleFlash.Play();
+        // Draw the raycast
+        Debug.DrawRay(fpsCam.transform.position, direction * range, Color.red, 0.1f);
 
-        //Raycast
+        // Raycast
         RaycastHit hit;
-        if (Physics.Raycast(fpsCam.transform.position, fpsCam.transform.forward, out hit, range))
+        if (Physics.Raycast(fpsCam.transform.position, direction, out hit, range))
         {
             Debug.Log(hit.transform.name);
             Enemy enemy = hit.transform.GetComponent<Enemy>();
@@ -86,30 +88,28 @@ public class GunSystem : MonoBehaviour
             }
             GameObject ImpactGo = Instantiate(hitEffect, hit.point, Quaternion.LookRotation(hit.normal));
             Destroy(ImpactGo, 2f);
-        }
-     
-        bulletsLeft--;
-        bulletsShot--;
 
-        Invoke("ResetShot", timeBetweenShooting);
+            // Pause the game
+            //Time.timeScale = 0f;
+        }
+
+        bulletsShot--; 
 
         if (bulletsShot > 0 && bulletsLeft > 0)
             Invoke("Shoot", timeBetweenShots);
+        else
+            Invoke("ResetShot", timeBetweenShooting);
+
+        bulletsLeft--;
     }
+
+
+
+
+
 
     private void ResetShot()
     {
         readyToShoot = true;
-    }
-    private void Reload()
-    {
-        reloading = true;
-        Invoke("ReloadFinished", reloadTime);
-    }
-
-    private void ReloadFinished()
-    {
-        bulletsLeft = magazineSize;
-        reloading = false;
     }
 }

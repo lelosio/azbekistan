@@ -207,4 +207,11 @@ public class AiController : MonoBehaviour
             }
         }
     }
+    public void StartChasing(Vector3 playerPosition)
+    {
+        m_IsPatrol = false;
+        m_PlayerNear = true;
+        m_PlayerPosition = playerPosition;
+    }
+
 }
